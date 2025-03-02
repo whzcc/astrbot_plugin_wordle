@@ -170,45 +170,63 @@ class PluginWordle(Star):
             logger.error(f"加载词表失败: {e!s}")
             return None
 
-    @command_group("wordle")  # noqa: F405
-    def wordle(self):
-        pass
+    @command("束")  # type: ignore  # 指令唤醒词为“猜单词结”，指令为“束”，即用户输入“猜单词结束”时触发
+    async def stop_wordle(self, event: AstrMessageEvent):
+        """中止Wordle游戏"""
+        session_id = event.unified_msg_origin
+        if session_id in self.game_sessions:
+            del self.game_sessions[session_id]
+            yield event.plain_result("猜单词已结束。")
+        else:
+            yield event.plain_result("游戏还没开始，输入“/猜单词”来开始游戏吧！")
 
-    @wordle.command("start")  # type: ignore
-    async def start_wordle(self, event: AstrMessageEvent, length: int = 5):
+    @command("示")  # type: ignore  # 指令唤醒词为“猜单词提”，指令为“示”
+    async def give_hint(self, event: AstrMessageEvent):
+        """获取提示（第一个字母）"""
+        session_id = event.unified_msg_origin
+        if session_id not in self.game_sessions:
+            yield event.plain_result("游戏还没开始，输入“/猜单词”来开始游戏吧！")
+            return
+        game = self.game_sessions[session_id]
+        i = random.randint(0,len(game.answer)-1)
+        hint = f"提示：第{i+1}个字母是 {game.answer[i]}"
+        yield event.plain_result(hint)
+        return
+    
+    @command("单词")  # noqa: F405    # 指令唤醒词为“/猜”，指令为“单词”，即用户输入“/猜单词”时触发
+    async def start_wordle(self, event: AstrMessageEvent, length: str = "5"):
+        if length == "":
+            length_ok = True
+        try:
+            length = int(length)
+            length_ok = True
+        except:
+            yield event.plain_result(f"指令有点错误哦。\n输入“/猜单词 + 单词长度”可以开始游戏，输入“猜单词结束”“猜单词提示”分别可以结束游戏和获取提示。")
+            length_ok = False
         """开始Wordle游戏"""
         answer = await self.get_answer(length)
         session_id = event.unified_msg_origin
         if session_id in self.game_sessions:
             del self.game_sessions[session_id]
         if not answer:
-            yield event.plain_result(f"未找到长度为{length}的单词")
+            if length_ok:
+                random_text = random.choice([
+                    f"{length}字母长度的单词，我没找到啊……",
+                    f"{length}个字母的单词好像有点稀有哦，换一个吧！",
+                    "没找到这么长的单词，换一个吧！"
+                ])
+                yield event.plain_result(random_text)
         else:
             game = WordleGame(answer)
             self.game_sessions[session_id] = game
             logger.debug(f"答案是：{answer}")
-
-    @wordle.command("stop")  # type: ignore
-    async def stop_wordle(self, event: AstrMessageEvent):
-        """中止Wordle游戏"""
-        session_id = event.unified_msg_origin
-        if session_id in self.game_sessions:
-            del self.game_sessions[session_id]
-            yield event.plain_result("已结束当前游戏")
-        else:
-            yield event.plain_result("当前未开始游戏")
-
-    @wordle.command("hint")  # type: ignore
-    async def give_hint(self, event: AstrMessageEvent):
-        """获取提示（第一个字母）"""
-        session_id = event.unified_msg_origin
-        if session_id not in self.game_sessions:
-            yield event.plain_result("当前未开始游戏")
-            return
-            
-        game = self.game_sessions[session_id]
-        hint = f"提示: 第一个字母是 {game.answer[0]}"
-        yield event.plain_result(hint)
+            random_text = random.choice([
+                    f"游戏开始！请输入长度为{length}的单词。",
+                    f"游戏开始了！请输入长度为{length}的单词。",
+                    f"游戏开始了！请输入长度为{length}的单词。"
+                ])
+            yield event.plain_result(random_text)
+        pass
 
     @event_message_type(EventMessageType.ALL)  # noqa: F405
     async def on_all_message(self, event: AstrMessageEvent):
@@ -217,39 +235,75 @@ class PluginWordle(Star):
         if session_id in self.game_sessions and event.is_at_or_wake_command:
             game = self.game_sessions[session_id]
 
-            if msg.startswith("wordle start"):
-                yield event.plain_result("游戏已开始，请输入猜测")
+            if msg.startswith("单词") or msg.startswith("示"):
                 return
-            
-            if msg.startswith("wordle hint"):
-                return
-
-            length = game.length
-            if len(msg) != length:
-                yield event.plain_result(f"输入单词长度应该为{length}")
-                return
+            else:
+                length = game.length
+                if len(msg) != length:
+                    yield event.plain_result(f"单词长度不正确🌀！应该是{length}个字母。")
+                    return
             
             # 单词拼写检查
-            spellcheck = SpellChecker()
-            if not (
-                msg in list(word_dict.keys())
-                or spellcheck.known((msg,))
-                ):   
-                yield event.plain_result(f"请输入拼写正确的单词")
-                return
+            if not(msg.startswith("单词")):
+                spellcheck = SpellChecker()
+                if not (
+                    msg in list(word_dict.keys())
+                    or spellcheck.known((msg,))
+                    ):
+                    random_text = random.choice([
+                    "你要输入英文才行啊😉！",
+                    "语言不正确哦，要输入英语单词。",
+                    "我以后就可以用其他语言猜单词了，不过现在还是用英语吧！"
+                    "Try in English!💬", 
+                    "需要英文单词～🔡",  
+                    "冠军🥇！", 
+                    "天才🌟！", 
+                    "胜利🏆！", 
+                    "满分💯！", 
+                    "王者👑！", 
+                    "绝了🤩！"
+                    ])
+                    yield event.plain_result(random_text)
+                    return
 
-            if not msg.isalpha():
-                yield event.plain_result("输入应该是英文")
-                return
+                if not msg.isalpha():
+                    random_text = random.choice([
+                    "你要输入英文才行啊😉！",
+                    "语言不正确哦，要输入英语单词。",
+                    "我以后就可以用其他语言猜单词了，不过现在还是用英语吧！"
+                    "Try in English💬!", 
+                    "需要英文单词～🔡",  
+                    "Alphabet Only!🔤", 
+                    "外星挑战：地球英文输入🛸。", 
+                    "符号错误🔣，需要纯字母。", 
+                    "❗Error: Expected ENGLISH :("
+                ])
+                    yield event.plain_result(random_text)
+                    return
 
             image_result = await game.guess(msg)
 
             if game.is_won:
                 sender_info = event.get_sender_name() if event.get_sender_name() else event.get_sender_id()
-                game_status = f"恭喜{sender_info}猜对了！正确答案是“{game.answer}”，意思是“{explanation}”"
+                random_text = random.choice([
+                    "恭喜你猜对了😉！",
+                    "Cool🎉！",
+                    "答案正确✅！"
+                    "太棒了🎉！", 
+                    "猜中啦🎯！",  
+                    "冠军🥇！", 
+                    "天才🌟！", 
+                    "胜利🏆！", 
+                    "满分💯！", 
+                    "王者👑！", 
+                    "绝了🤩！"
+                ])
+                if random.randint(1,22) == 1:
+                    random_text = "🔠🥳语言神，启动🔠🥳！"
+                game_status = f"{random_text}“{game.answer}”的意思是“{explanation}”"
                 del self.game_sessions[session_id]
             elif game.is_game_over:
-                game_status = f"游戏结束。正确答案是“{game.answer}”,意思是“{explanation}”"
+                game_status = f"没有人猜出答案啊Σ(°△°|||)︴\n正确答案是“{game.answer}”，意思是“{explanation}”"
                 del self.game_sessions[session_id]
             else:
                 game_status = f"已猜测 {len(game.guesses)}/{game.max_attempts} 次"
