@@ -200,7 +200,7 @@ class PluginWordle(Star):
             return
         game = self.game_sessions[session_id]
         i = random.randint(0,len(game.answer)-1)
-        hint = f"提示：第{i+1}个字母是 {game.answer[i]}"
+        hint = f"提示：第{i+1}个字母是 {game.answer[i]}。"
         yield event.plain_result(hint)
         return
     
@@ -222,7 +222,7 @@ class PluginWordle(Star):
         if not answer:
             if length_ok:
                 random_text = random.choice([
-                    f"{length}字母长度的单词，我没找到啊……",
+                    f"{length}个字母长度的单词，我找不到啊……",
                     f"{length}个字母的单词好像有点稀有哦，换一个吧！",
                     "没找到这么长的单词，换一个吧！"
                 ])
@@ -251,28 +251,11 @@ class PluginWordle(Star):
                 return
             else:
                 length = game.length
-                if len(msg) != length:
-                    yield event.plain_result(f"单词长度不正确🌀！应该是{length}个字母。")
-                    return
-            
-            # 单词拼写检查
-            if not(msg.startswith("单词")):
                 spellcheck = SpellChecker()
-                if not (
-                    msg in list(word_dict.keys())
-                    or spellcheck.known((msg,))
-                    ):
-                    random_text = random.choice([
-                    "拼写错误😉！",
-                    "试试重新拼写一下单词吧！",
-                    "单词拼写不正确！"
-                    ])
-                    yield event.plain_result(random_text)
-                    return
 
                 if not msg.isalpha():
                     random_text = random.choice([
-                    "你要输入英文才行啊😉！",
+                    "你要输入英语才行啊😉！",
                     "语言不正确哦，要输入英语单词。",
                     "我以后就可以用其他语言猜单词了，不过现在还是用英语吧！"
                     "Try in English💬!", 
@@ -282,9 +265,41 @@ class PluginWordle(Star):
                     "符号错误🔣，需要纯字母。", 
                     "❗Error: Expected ENGLISH :("
                 ])
+                    random_text = random_text + "\n输入“猜单词结束”就可以结束游戏，输入“猜单词提示”可以获得提示，都不需要加“/”。"
                     yield event.plain_result(random_text)
                     return
+                
+                elif len(msg) != length:
+                    random_text = random.choice([
+                    f"你要输入{length}字母的英语单词才行啊😉！",
+                    f"不太对哦，要输入{length}个字母的英语单词🔡。",
+                    f"❗Error: Expected ENGLISH, and WORDLENGTH being {length} :(",
+                    f"需要{length}个字母长的英语单词～🔡", 
+                    f"输入有问题！请输入{length}个字母长的英语单词。",
+                    f"回答错误❌！应该是有{length}个字母的英语单词。",
+                    f"戳啦🌀！请输入{length}个字母的英语单词。"
 
+                ])
+                    random_text = random_text + "\n输入“猜单词结束”就可以结束游戏，输入“猜单词提示”可以获得提示，都不需要加“/”。"
+                    yield event.plain_result(random_text)
+                    return   
+                    
+                elif not(
+                    msg in list(word_dict.keys())
+                    or spellcheck.known((msg,))
+                    ):
+                    random_text = random.choice([
+                    "拼写错误😉！",
+                    "拼错了哦，试试重新拼一下单词吧！",
+                    "单词拼写不正确！",
+                    "拼写有误🌀，再试一次吧！",
+                    "（你确定这个单词存在吗😲？）",
+                    "拼写错误，请检查拼写！",
+                    ])
+                    random_text = random_text + "\n输入“猜单词结束”就可以结束游戏，输入“猜单词提示”可以获得提示，都不需要加“/”。"
+                    yield event.plain_result(random_text)
+                    return
+                
             image_result = await game.guess(msg)
 
             if game.is_won:
@@ -304,14 +319,14 @@ class PluginWordle(Star):
                 ])
                 if random.randint(1,22) == 1:
                     random_text = "🔠🥳语言神，启动🔠🥳！"
-                game_status = f"{random_text}“{game.answer}”的意思是“{explanation}”"
+                game_status = f"{random_text}“{game.answer}”的意思是“{explanation}”。"
                 del self.game_sessions[session_id]
             elif game.is_game_over:
-                game_status = f"没有人猜出答案啊Σ(°△°|||)︴\n正确答案是“{game.answer}”，意思是“{explanation}”"
+                game_status = f"没有人猜出答案啊Σ(°△°|||)︴\n正确答案是“{game.answer}”，意思是“{explanation}”。"
                 del self.game_sessions[session_id]
             else:
-                game_status = f"已猜测 {len(game.guesses)}/{game.max_attempts} 次"
-                logger.info(f"已猜测 {len(game.guesses)}/{game.max_attempts} 次")
+                game_status = f"已猜测 {len(game.guesses)}/{game.max_attempts} 次。"
+                logger.info(f"已猜测 {len(game.guesses)}/{game.max_attempts} 次。")
 
 
             # 将二进制数据编码为Base64字符串
