@@ -257,7 +257,7 @@ class PluginWordle(Star):
                     random_text = random.choice([
                     "你要输入英语才行啊😉！",
                     "语言不正确哦，要输入英语单词。",
-                    "我以后就可以用其他语言猜单词了，不过现在还是用英语吧！"
+                    "我以后就可以用其他语言猜单词了，不过现在还是用英语吧！",
                     "Try in English💬!", 
                     "需要英文单词～🔡",  
                     "Alphabet Only!🔤", 
