@@ -1,6 +1,7 @@
 import os
 import random
 import json
+import base64
 from io import BytesIO
 
 from PIL import Image as ImageW
@@ -9,6 +10,16 @@ from PIL import ImageDraw, ImageFont
 from astrbot.api.all import *  # noqa: F403
 from astrbot.api.event import AstrMessageEvent
 from astrbot.api.star import Context, Star, register
+
+TMPL = '''
+<div style="font-size: 36px;">
+<img src="{{ footer_image }}"
+     style="display: block;
+            width: 100%;
+            margin-top: 20px;"
+     alt="插图">
+</div>
+'''
 
 try:
     os.system("pip install pyspellchecker")
@@ -302,9 +313,22 @@ class PluginWordle(Star):
                 game_status = f"已猜测 {len(game.guesses)}/{game.max_attempts} 次"
                 logger.info(f"已猜测 {len(game.guesses)}/{game.max_attempts} 次")
 
+
+            # 将二进制数据编码为Base64字符串
+            base64_encoded_data = base64.b64encode(image_result)
+
+            # 如果你想创建一个可以直接在HTML中使用的Data URL，可以这样做：
+            picture_url = 'data:image/png;base64,' + base64_encoded_data.decode('utf-8')
+
+            url = await self.html_render(TMPL,
+    {"footer_image": picture_url})
+                
             chain = [
-                Image.fromBytes(image_result),  # noqa: F405
+                # Image.fromBytes(image_result),  # noqa: F405
+                Image.fromURL(url),
                 Plain(game_status),  # noqa: F405
             ]
 
             yield event.chain_result(chain)
+
+            # yield event.image_result(url)
