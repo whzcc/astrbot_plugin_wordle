@@ -231,6 +231,7 @@ class PluginWordle(Star):
     @event_message_type(EventMessageType.ALL)  # noqa: F405
     async def on_all_message(self, event: AstrMessageEvent):
         msg = event.get_message_str()
+        logger.info(msg)
         session_id = event.unified_msg_origin
         if session_id in self.game_sessions and event.is_at_or_wake_command:
             game = self.game_sessions[session_id]
@@ -251,17 +252,9 @@ class PluginWordle(Star):
                     or spellcheck.known((msg,))
                     ):
                     random_text = random.choice([
-                    "你要输入英文才行啊😉！",
-                    "语言不正确哦，要输入英语单词。",
-                    "我以后就可以用其他语言猜单词了，不过现在还是用英语吧！"
-                    "Try in English!💬", 
-                    "需要英文单词～🔡",  
-                    "冠军🥇！", 
-                    "天才🌟！", 
-                    "胜利🏆！", 
-                    "满分💯！", 
-                    "王者👑！", 
-                    "绝了🤩！"
+                    "拼写错误😉！",
+                    "试试重新拼写一下单词吧！",
+                    "单词拼写不正确！"
                     ])
                     yield event.plain_result(random_text)
                     return
@@ -307,6 +300,7 @@ class PluginWordle(Star):
                 del self.game_sessions[session_id]
             else:
                 game_status = f"已猜测 {len(game.guesses)}/{game.max_attempts} 次"
+                logger.info(f"已猜测 {len(game.guesses)}/{game.max_attempts} 次")
 
             chain = [
                 Image.fromBytes(image_result),  # noqa: F405
