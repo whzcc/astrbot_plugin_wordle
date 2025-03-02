@@ -1,4 +1,4 @@
-name: astrbot_plugin_wordle
+name: astrbot_plugin_wordle_shitmountain
 desc: Astrbot wordle游戏，支持指定位数，加入了单词拼写检查（通过spellchecker库和自定词库之一即可）、自定义词库显示字体（去main.py里替换掉“MinecraftAE.ttf”）、释义功能（写在插件目录的wordlist文件夹下的json文件）。插件会自动尝试安装“pyspellchecker”库，但建议手动在AstrBot目录中requirements.txt添加一行“pyspellchecker”。
 help: 输入 /wordle 查看帮助
 version: v1.0.0
